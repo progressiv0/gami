@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/progressiv0/gami/core/gpr"
-	"github.com/progressiv0/gami/core/hash"
-	"github.com/progressiv0/gami/core/ots"
-	"github.com/progressiv0/gami/core/signing"
+	"authenticmemory.org/gami-core/gpr"
+	"authenticmemory.org/gami-core/hash"
+	"authenticmemory.org/gami-core/ots"
+	"authenticmemory.org/gami-core/signing"
 )
 
 var anchorCmd = &cobra.Command{
@@ -32,6 +32,7 @@ var (
 	anchorFile        string
 	anchorHash        string
 	anchorKeyPath     string
+	anchorPubKeyPath  string
 	anchorKeyID       string
 	anchorInstitution string
 	anchorMetadata    string
@@ -43,6 +44,7 @@ func init() {
 	anchorCmd.Flags().StringVar(&anchorFile, "file", "", "Path to the file to anchor")
 	anchorCmd.Flags().StringVar(&anchorHash, "hash", "", "Pre-computed SHA-256 hash (skips reading the file)")
 	anchorCmd.Flags().StringVar(&anchorKeyPath, "key", "", "Path to Ed25519 private key file (hex)")
+	anchorCmd.Flags().StringVar(&anchorPubKeyPath, "pub-key", "", "Path to Ed25519 public key file to embed in GPR (enables offline verification)")
 	anchorCmd.Flags().StringVar(&anchorKeyID, "key-id", "", "DID key reference (e.g. did:web:example.org#key-2026)")
 	anchorCmd.Flags().StringVar(&anchorInstitution, "institution", "", "Institution name")
 	anchorCmd.Flags().StringVar(&anchorMetadata, "metadata", "", "Path to JSON metadata file or inline JSON string")
@@ -87,6 +89,16 @@ func runAnchor(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("parse private key: %w", err)
 	}
 
+	// 2b. Load public key for embedding (optional)
+	var pubKeyHex string
+	if anchorPubKeyPath != "" {
+		pubBytes, err := os.ReadFile(anchorPubKeyPath)
+		if err != nil {
+			return fmt.Errorf("read pub key file: %w", err)
+		}
+		pubKeyHex = string(pubBytes)
+	}
+
 	// 3. Load metadata (optional)
 	meta := gpr.PublicMetadata{}
 	if anchorMetadata != "" {
@@ -109,6 +121,7 @@ func runAnchor(cmd *cobra.Command, args []string) error {
 		Filename:        filename,
 		InstitutionName: anchorInstitution,
 		KeyID:           anchorKeyID,
+		PublicKeyHex:    pubKeyHex,
 		Metadata:        meta,
 	})
 	if err != nil {

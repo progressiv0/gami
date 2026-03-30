@@ -1,0 +1,4 @@
+This is a GAMI test file.
+It is used to demonstrate cryptographic anchoring and verification.
+Institution: Test Archive (test.local)
+Date: 2026-03-30

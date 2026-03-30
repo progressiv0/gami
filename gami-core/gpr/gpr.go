@@ -38,8 +38,9 @@ type Subject struct {
 
 // Institution identifies the signing institution and its key.
 type Institution struct {
-	Name  string `json:"name"`
-	KeyID string `json:"key_id"`
+	Name         string `json:"name"`
+	KeyID        string `json:"key_id"`
+	PublicKeyHex string `json:"public_key_hex,omitempty"` // embedded for offline/resilience verification
 }
 
 // Metadata holds public and optionally a private metadata hash.
@@ -69,6 +70,7 @@ type BuildRequest struct {
 	Filename        string
 	InstitutionName string
 	KeyID           string
+	PublicKeyHex    string // optional: embed public key for offline verification
 	Metadata        PublicMetadata
 	PrivateHash     string
 	ParentID        *string
@@ -98,8 +100,9 @@ func Build(req BuildRequest) (*GPR, error) {
 			Filename: req.Filename,
 		},
 		Institution: Institution{
-			Name:  req.InstitutionName,
-			KeyID: req.KeyID,
+			Name:         req.InstitutionName,
+			KeyID:        req.KeyID,
+			PublicKeyHex: req.PublicKeyHex,
 		},
 		Metadata: Metadata{
 			Public:      req.Metadata,

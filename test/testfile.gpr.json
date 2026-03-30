@@ -1,0 +1,25 @@
+{
+  "@context": "https://authenticmemory.org/schema/v1",
+  "type": "gami-proof",
+  "schema": "v1",
+  "id": "urn:uuid:99cd0302-6d9a-4425-9f0f-b466655e6cb2",
+  "subject": {
+    "hash": "sha256:4d9e8174b7eccd69f13127c1ef74f383a111d9722b15f7b6148bc83c51c6a40f",
+    "filename": "test/testfile.txt"
+  },
+  "institution": {
+    "name": "Test Archive",
+    "key_id": "did:web:test.local#key-1",
+    "public_key_hex": "b4768af31ca0662f2711a4a5827d9bafabcb903917acbcb4d0a54e62d7ae4a12"
+  },
+  "metadata": {
+    "public": {
+      "title": "GAMI Verification Test",
+      "collection": "test",
+      "dateAnchored": "2026-03-30T17:01:31Z"
+    }
+  },
+  "parent": null,
+  "canonicalization": "JCS",
+  "signature": "ed25519:87c43ab31c47992337e020c3afec8a276bdc3c9fb376308efcf6a149527d584c9b2f12405f26e5178ca094459cdbba7cda0699ffa07e66d8f57dff307cf7d402"
+}

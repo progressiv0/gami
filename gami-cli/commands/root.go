@@ -29,6 +29,7 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(anchorCmd)
+	rootCmd.AddCommand(upgradeCmd)
 	rootCmd.AddCommand(verifyCmd)
 	rootCmd.AddCommand(batchCmd)
 	rootCmd.AddCommand(keygenCmd)

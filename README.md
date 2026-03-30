@@ -36,7 +36,7 @@ make build
 ### Install to $GOPATH/bin
 
 ```bash
-go install github.com/progressiv0/gami/cli@latest
+go install authenticmemory.org/gami-cli@latest
 ```
 
 ### Cross-compile for all platforms
@@ -90,6 +90,18 @@ gami anchor \
   --output proof.gpr.json
 ```
 
+Embed the public key in the GPR for offline verification (no DID:web required):
+
+```bash
+gami anchor \
+  --file photo.tif \
+  --key ./keys/ed25519.priv \
+  --pub-key ./keys/ed25519.pub \
+  --key-id "did:web:example.org#key-1" \
+  --institution "Example Archive" \
+  --output proof.gpr.json
+```
+
 If you already have a SHA-256 hash (e.g. from Archivematica), skip the file read:
 
 ```bash
@@ -102,7 +114,25 @@ gami anchor \
 
 ---
 
-### 3. Verify a file (offline / direct mode)
+### 3. Upgrade a GPR (embed confirmed Bitcoin proof)
+
+After anchoring, Bitcoin confirmation takes ~1 hour. Once confirmed, embed the
+completed OTS proof into the GPR:
+
+```bash
+gami upgrade --gpr proof.gpr.json
+```
+
+If confirmation is not yet available, the GPR is left unchanged and you can retry later.
+Write to a separate file instead of overwriting:
+
+```bash
+gami upgrade --gpr proof.gpr.json --output proof-final.gpr.json
+```
+
+---
+
+### 4. Verify a file (offline / direct mode)
 
 No server required. Verifies hash match, Ed25519 signature, and OTS proof locally.
 
@@ -133,7 +163,7 @@ gami verify --file photo.tif --gpr proof.gpr.json --json
 
 ---
 
-### 4. Verify via server (lookup mode)
+### 5. Verify via server (lookup mode)
 
 The file hash is computed locally and only the hash is sent to the server.
 
@@ -143,7 +173,7 @@ gami verify --file photo.tif --server https://authenticmemory.org
 
 ---
 
-### 5. Batch anchoring
+### 6. Batch anchoring
 
 **From a directory:**
 
@@ -177,7 +207,7 @@ gami batch ... --resume
 
 ---
 
-### 6. Export a GPR from the index
+### 7. Export a GPR from the index
 
 ```bash
 # By file hash
@@ -199,7 +229,9 @@ gami export \
 
 ```
 gami/
-├── core/               Shared library — no HTTP, no UI, independently auditable
+├── gami-core/          module: authenticmemory.org/gami-core
+│   │                   Shared library — no HTTP, no UI, independently auditable
+│   ├── go.mod
 │   ├── hash/           SHA-256 file fingerprinting
 │   ├── gpr/            GPR construction, JCS canonicalisation (RFC 8785)
 │   ├── signing/        Ed25519 key generation, signing, verification
@@ -208,13 +240,75 @@ gami/
 │   ├── verify/         Stateless verification engine (hash · sig · OTS)
 │   └── batch/          Filesystem and CSV adapters, progress tracking
 │
-└── cli/                Command-line interface (uses core/ only)
-    └── commands/
-        ├── anchor      Hash → GPR → sign → OTS submit
-        ├── verify      Offline or server-lookup verification
-        ├── batch       Multi-file anchoring with resume support
-        ├── keygen      Ed25519 key pair + DID document template
-        └── export      Download GPR(s) from an index server
+├── gami-cli/           module: authenticmemory.org/gami-cli
+│   │                   Command-line interface (depends on gami-core)
+│   ├── go.mod
+│   └── commands/
+│       ├── anchor      Hash → GPR → sign → OTS submit
+│       ├── upgrade     Fetch completed Bitcoin proof and embed in GPR
+│       ├── verify      Offline or server-lookup verification
+│       ├── batch       Multi-file anchoring with resume support
+│       ├── keygen      Ed25519 key pair + DID document template
+│       └── export      Download GPR(s) from an index server
+│
+└── test/               Local test fixtures
+    ├── testfile.txt        Sample file for local verification testing
+    ├── testfile.gpr.json   Pre-signed GPR (no OTS — use --no-ots for demo)
+    ├── ed25519.priv        Test private key (do not use in production)
+    ├── ed25519.pub         Test public key (embedded in testfile.gpr.json)
+    └── did.json            DID document template for test.local
+```
+
+### Using gami-core in another project
+
+```bash
+go get authenticmemory.org/gami-core
+```
+
+```go
+import (
+    "authenticmemory.org/gami-core/gpr"
+    "authenticmemory.org/gami-core/signing"
+    "authenticmemory.org/gami-core/verify"
+)
+```
+
+---
+
+## Local Testing
+
+The `test/` directory contains a pre-signed GPR and sample file for trying out
+verification without needing a live DID:web endpoint or Bitcoin confirmation.
+
+```bash
+# Build the CLI
+make build   # → bin/gami
+
+# Verify the test file against its GPR (hash + signature pass; OTS expected to fail)
+bin/gami verify --file test/testfile.txt --gpr test/testfile.gpr.json
+```
+
+Expected output:
+
+```
+  [PASS] File hash match
+  [PASS] Institutional signature (Ed25519)   ← uses embedded public key
+  [FAIL] OTS timestamp (Bitcoin)             ← anchored with --no-ots; upgrade to fix
+```
+
+To generate a fully-passing GPR from scratch:
+
+```bash
+bin/gami anchor \
+  --file test/testfile.txt \
+  --key test/ed25519.priv \
+  --pub-key test/ed25519.pub \
+  --key-id "did:web:test.local#key-1" \
+  --institution "Test Archive" \
+  --output test/testfile.gpr.json
+
+# After ~1 hour:
+bin/gami upgrade --gpr test/testfile.gpr.json
 ```
 
 ---

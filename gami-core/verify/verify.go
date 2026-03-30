@@ -4,10 +4,10 @@ package verify
 import (
 	"fmt"
 
-	"github.com/progressiv0/gami/core/did"
-	"github.com/progressiv0/gami/core/gpr"
-	"github.com/progressiv0/gami/core/hash"
-	"github.com/progressiv0/gami/core/signing"
+	"authenticmemory.org/gami-core/did"
+	"authenticmemory.org/gami-core/gpr"
+	"authenticmemory.org/gami-core/hash"
+	"authenticmemory.org/gami-core/signing"
 )
 
 // Result holds the outcome of a full GPR verification. §4.4
@@ -91,25 +91,29 @@ func (e *Engine) checkSignature(g *gpr.GPR, result *Result) {
 		return
 	}
 
-	// Resolve institution public key via DID:web §5.4
+	// Resolve institution public key: try DID:web first, fall back to embedded key. §5.4
+	var pubKeyHex string
 	resolved, err := e.DIDResolver.Resolve(g.Institution.KeyID)
-	if err != nil {
+	if err == nil {
+		if resolved.FromArchive {
+			result.SignatureKeyStatus = "archived"
+		} else {
+			result.SignatureKeyStatus = "valid"
+		}
+		pubKeyHex, err = did.PublicKeyHex(resolved.Document, g.Institution.KeyID)
+		if err != nil {
+			result.SignatureValid = false
+			result.Errors["signature"] = fmt.Sprintf("key not found in DID document: %v", err)
+			return
+		}
+	} else if g.Institution.PublicKeyHex != "" {
+		// Fall back to key embedded in GPR (offline / resilience path)
+		pubKeyHex = g.Institution.PublicKeyHex
+		result.SignatureKeyStatus = "embedded"
+	} else {
 		result.SignatureValid = false
 		result.SignatureKeyStatus = "unknown"
-		result.Errors["signature"] = fmt.Sprintf("DID resolution failed: %v", err)
-		return
-	}
-
-	if resolved.FromArchive {
-		result.SignatureKeyStatus = "archived"
-	} else {
-		result.SignatureKeyStatus = "valid"
-	}
-
-	pubKeyHex, err := did.PublicKeyHex(resolved.Document, g.Institution.KeyID)
-	if err != nil {
-		result.SignatureValid = false
-		result.Errors["signature"] = fmt.Sprintf("key not found in DID document: %v", err)
+		result.Errors["signature"] = fmt.Sprintf("DID resolution failed and no embedded key: %v", err)
 		return
 	}
 

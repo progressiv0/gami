@@ -1,0 +1,13 @@
+{
+  "@context": ["https://www.w3.org/ns/did/v1"],
+  "id": "did:web:test.local",
+  "verificationMethod": [
+    {
+      "id": "did:web:test.local#did:web:test.local#key-1",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:web:test.local",
+      "publicKeyHex": "b4768af31ca0662f2711a4a5827d9bafabcb903917acbcb4d0a54e62d7ae4a12"
+    }
+  ],
+  "authentication": ["did:web:test.local#did:web:test.local#key-1"]
+}

@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/progressiv0/gami/core/gpr"
-	"github.com/progressiv0/gami/core/hash"
-	"github.com/progressiv0/gami/core/signing"
+	"authenticmemory.org/gami-core/gpr"
+	"authenticmemory.org/gami-core/hash"
+	"authenticmemory.org/gami-core/signing"
 )
 
 // Entry is a single file ready for GPR construction.

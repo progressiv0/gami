@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/progressiv0/gami/core/batch"
-	"github.com/progressiv0/gami/core/ots"
-	"github.com/progressiv0/gami/core/hash"
-	"github.com/progressiv0/gami/core/signing"
+	"authenticmemory.org/gami-core/batch"
+	"authenticmemory.org/gami-core/ots"
+	"authenticmemory.org/gami-core/hash"
+	"authenticmemory.org/gami-core/signing"
 )
 
 var batchCmd = &cobra.Command{
