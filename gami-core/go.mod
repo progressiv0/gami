@@ -1,10 +1,10 @@
-module authenticmemory.org/gami-core
+module github.com/progressiv0/gami/gami-core
 
 go 1.22
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/opentimestamps/go-opentimestamps v0.0.0
+	github.com/progressiv0/go-opentimestamps v0.0.0
 )
 
 require (
@@ -12,4 +12,4 @@ require (
 	golang.org/x/sys v0.16.0 // indirect
 )
 
-replace github.com/opentimestamps/go-opentimestamps => ../../go-opentimestamps
+// replace github.com/progressiv0/go-opentimestamps => ../../go-opentimestamps

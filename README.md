@@ -36,7 +36,7 @@ make build
 ### Install to $GOPATH/bin
 
 ```bash
-go install authenticmemory.org/gami-cli@latest
+go install github.com/progressiv0/gami/gami-cli@latest
 ```
 
 ### Cross-compile for all platforms
@@ -168,7 +168,7 @@ gami verify --file photo.tif --gpr proof.gpr.json --json
 The file hash is computed locally and only the hash is sent to the server.
 
 ```bash
-gami verify --file photo.tif --server https://authenticmemory.org
+gami verify --file photo.tif --server https://github.com/progressiv0/gami
 ```
 
 ---
@@ -213,13 +213,13 @@ gami batch ... --resume
 # By file hash
 gami export \
   --hash sha256:3a7f91... \
-  --server https://authenticmemory.org \
+  --server https://github.com/progressiv0/gami \
   --output proof.gpr.json
 
 # By GPR ID with full provenance chain
 gami export \
   --id urn:uuid:a1b2c3... \
-  --server https://authenticmemory.org \
+  --server https://github.com/progressiv0/gami \
   --chain
 ```
 
@@ -229,7 +229,7 @@ gami export \
 
 ```
 gami/
-├── gami-core/          module: authenticmemory.org/gami-core
+├── gami-core/          module: github.com/progressiv0/gami/gami-core
 │   │                   Shared library — no HTTP, no UI, independently auditable
 │   ├── go.mod
 │   ├── hash/           SHA-256 file fingerprinting
@@ -240,7 +240,7 @@ gami/
 │   ├── verify/         Stateless verification engine (hash · sig · OTS)
 │   └── batch/          Filesystem and CSV adapters, progress tracking
 │
-├── gami-cli/           module: authenticmemory.org/gami-cli
+├── gami-cli/           module: github.com/progressiv0/gami/gami-cli
 │   │                   Command-line interface (depends on gami-core)
 │   ├── go.mod
 │   └── commands/
@@ -262,14 +262,14 @@ gami/
 ### Using gami-core in another project
 
 ```bash
-go get authenticmemory.org/gami-core
+go get github.com/progressiv0/gami/gami-core
 ```
 
 ```go
 import (
-    "authenticmemory.org/gami-core/gpr"
-    "authenticmemory.org/gami-core/signing"
-    "authenticmemory.org/gami-core/verify"
+    "github.com/progressiv0/gami/gami-core/gpr"
+    "github.com/progressiv0/gami/gami-core/signing"
+    "github.com/progressiv0/gami/gami-core/verify"
 )
 ```
 

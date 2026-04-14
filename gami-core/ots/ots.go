@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opentimestamps/go-opentimestamps/calendar"
-	"github.com/opentimestamps/go-opentimestamps/core"
+	"github.com/progressiv0/go-opentimestamps/calendar"
+	"github.com/progressiv0/go-opentimestamps/core"
 )
 
 // DefaultCalendars are the public OTS calendar servers operated by the OTS project.

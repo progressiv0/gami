@@ -1,5 +1,5 @@
 {
-  "@context": "https://authenticmemory.org/schema/v1",
+  "@context": "https://github.com/progressiv0/gami/schema/v1",
   "type": "gami-proof",
   "schema": "v1",
   "id": "urn:uuid:cb39ab66-13f7-4113-9b24-c38c02eb1eb6",
@@ -9,7 +9,7 @@
   },
   "proof": {
     "created": "2026-04-04T22:38:02Z",
-    "key_id": "did:web:authenticmemory.org#key-1",
+    "key_id": "did:web:github.com/progressiv0/gami#key-1",
     "public_key_hex": "b4768af31ca0662f2711a4a5827d9bafabcb903917acbcb4d0a54e62d7ae4a12",
     "signature": "ed25519:cac63eec5de37fefddc92704da81159fb757a589e519f1572fb8b48638f5addb84e417bb2b2568a59b9e1b369279615792c73bc85c146f1ac54fbf918da4070f",
     "timestamp": {

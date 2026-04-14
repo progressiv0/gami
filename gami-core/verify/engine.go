@@ -13,7 +13,7 @@ import (
 	"authenticmemory.org/gami-core/gpr"
 	"authenticmemory.org/gami-core/hash"
 	"authenticmemory.org/gami-core/signing"
-	"github.com/opentimestamps/go-opentimestamps/core"
+	"github.com/progressiv0/go-opentimestamps/core"
 )
 
 // otsFileMagic is the 31-byte header that starts every DetachedTimestampFile (.ots).
