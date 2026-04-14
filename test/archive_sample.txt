@@ -1,0 +1,10 @@
+Title: Declaration of Digital Preservation Intent
+
+This document serves as a sample archival record for the GAMI proof pipeline.
+It demonstrates the full prepare → sign → stamp workflow with attached metadata.
+
+Content hash anchoring ties the exact bytes of this file to a Bitcoin block
+via OpenTimestamps, providing cryptographic proof of existence and integrity.
+
+Institution: Authentic Memory Foundation
+Date: 2026-04-04

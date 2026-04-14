@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"authenticmemory.org/gami-core/batch"
+	"authenticmemory.org/gami-core/gpr"
 	"authenticmemory.org/gami-core/ots"
-	"authenticmemory.org/gami-core/hash"
 	"authenticmemory.org/gami-core/signing"
 )
 
@@ -32,9 +35,8 @@ var (
 	batchPath        string
 	batchManifest    string
 	batchKeyPath     string
-	batchKeyID       string
-	batchInstitution string
-	batchOutput      string
+	batchKeyID  string
+	batchOutput string
 	batchProgressFile string
 	batchResume      bool
 	batchNoOTS       bool
@@ -46,7 +48,6 @@ func init() {
 	batchCmd.Flags().StringVar(&batchManifest, "manifest", "", "CSV manifest path (csv adapter)")
 	batchCmd.Flags().StringVar(&batchKeyPath, "key", "", "Path to Ed25519 private key file")
 	batchCmd.Flags().StringVar(&batchKeyID, "key-id", "", "DID key reference")
-	batchCmd.Flags().StringVar(&batchInstitution, "institution", "", "Institution name")
 	batchCmd.Flags().StringVar(&batchOutput, "output", "./gprs", "Directory to write GPR JSON files")
 	batchCmd.Flags().StringVar(&batchProgressFile, "progress-file", ".gami-progress.json", "Progress log file")
 	batchCmd.Flags().BoolVar(&batchResume, "resume", false, "Resume from a previous progress log")
@@ -54,7 +55,6 @@ func init() {
 
 	_ = batchCmd.MarkFlagRequired("key")
 	_ = batchCmd.MarkFlagRequired("key-id")
-	_ = batchCmd.MarkFlagRequired("institution")
 }
 
 func runBatch(cmd *cobra.Command, args []string) error {
@@ -110,7 +110,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 	ok, failed := 0, 0
 
 	for i, entry := range entries {
-		g, err := batch.BuildAndSign(entry, batchInstitution, batchKeyID, privKey)
+		g, err := batch.BuildAndSign(entry, batchKeyID, privKey)
 		if err != nil {
 			logf("  [%d/%d] SKIP %s: %v", i+1, len(entries), entry.Filename, err)
 			failed++
@@ -119,13 +119,22 @@ func runBatch(cmd *cobra.Command, args []string) error {
 
 		// Submit to OTS
 		if !batchNoOTS {
-			canonical, _ := g.Canonicalise("timestamp")
-			otsHash := hash.Bytes(canonical)
-			proof, otsErr := otsClient.Submit(otsHash)
+			canonical, _ := g.CanonicaliseForTimestamp()
+			sum := sha256.Sum256(canonical)
+			docHash := "sha256:" + hex.EncodeToString(sum[:])
+			result, otsErr := otsClient.Submit(docHash)
 			if otsErr != nil {
 				logf("  Warning: OTS failed for %s: %v", entry.Filename, otsErr)
 			} else {
-				g = g.SetTimestampProof(proof)
+				record := &gpr.Timestamp{
+					Type:         "OpenTimestamps",
+					DocumentHash: docHash,
+					Calendar:     result.Calendar,
+					SubmittedAt:  result.SubmittedAt.Format("2006-01-02T15:04:05Z"),
+					OTSData:      base64.StdEncoding.EncodeToString(result.ProofBytes),
+					Upgraded:     false,
+				}
+				g = g.SetTimestamp(record)
 			}
 		}
 

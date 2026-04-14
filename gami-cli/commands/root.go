@@ -19,6 +19,11 @@ and a Bitcoin blockchain timestamp via OpenTimestamps.
 Documentation: https://authenticmemory.org/spec`,
 }
 
+// logf prints a formatted message to stderr.
+func logf(format string, a ...any) {
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+}
+
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -29,9 +34,13 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(anchorCmd)
+	rootCmd.AddCommand(prepareCmd)
+	rootCmd.AddCommand(signCmd)
+	rootCmd.AddCommand(stampCmd)
 	rootCmd.AddCommand(upgradeCmd)
 	rootCmd.AddCommand(verifyCmd)
 	rootCmd.AddCommand(batchCmd)
 	rootCmd.AddCommand(keygenCmd)
 	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(extractCmd)
 }

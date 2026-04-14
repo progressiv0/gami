@@ -134,7 +134,7 @@ func serverLookup(server, hashHex string) (*gpr.GPR, error) {
 func printResult(r *verify.Result) {
 	fmt.Println()
 	fmt.Println("=== GAMI Verification Result ===")
-	fmt.Printf("Institution : %s\n", r.InstitutionName)
+	fmt.Printf("Key         : %s\n", r.KeyID)
 	fmt.Printf("GPR ID      : %s\n", r.GPRID)
 	fmt.Printf("Anchored at : %s\n", r.AnchoredAt)
 	fmt.Println()
@@ -151,12 +151,12 @@ func printResult(r *verify.Result) {
 		fmt.Println(line)
 	}
 
-	check("File hash match", r.HashMatch, "hash")
-	check("Institutional signature (Ed25519)", r.SignatureValid, "signature")
-	check("OTS timestamp (Bitcoin)", r.TimestampValid, "timestamp")
+	check("File hash match", r.Checks.FileHashMatch, "hash")
+	check("Institutional signature (Ed25519)", r.Checks.SignatureValid, "signature")
+	check("OTS timestamp (Bitcoin)", r.Checks.OTSVerified, "timestamp")
 
-	if r.SignatureKeyStatus != "" {
-		fmt.Printf("       Key status: %s\n", r.SignatureKeyStatus)
+	if r.Checks.SignatureKeyStatus != "" {
+		fmt.Printf("       Key status: %s\n", r.Checks.SignatureKeyStatus)
 	}
 
 	fmt.Println()

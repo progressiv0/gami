@@ -166,27 +166,21 @@ func CSVAdapter(manifestPath string, progress *Progress) ([]Entry, error) {
 }
 
 // BuildAndSign constructs a signed GPR for a batch entry. §UC-03
-func BuildAndSign(entry Entry, institutionName, keyID string, privKey ed25519.PrivateKey) (*gpr.GPR, error) {
-	meta := gpr.PublicMetadata{
-		Title:              entry.Metadata["title"],
-		Collection:         entry.Metadata["collection"],
-		ClassificationCode: entry.Metadata["classificationCode"],
-	}
-
+// The Ed25519 signature covers JCS(document with proof.signature and proof.timestamp absent).
+func BuildAndSign(entry Entry, keyID string, privKey ed25519.PrivateKey) (*gpr.GPR, error) {
 	g, err := gpr.Build(gpr.BuildRequest{
-		FileHash:        entry.Hash,
-		Filename:        entry.Filename,
-		InstitutionName: institutionName,
-		KeyID:           keyID,
-		Metadata:        meta,
+		FileHash: entry.Hash,
+		Filename: entry.Filename,
+		KeyID:    keyID,
+		Metadata: entry.Metadata,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("build GPR: %w", err)
 	}
 
-	canonical, err := g.Canonicalise("signature", "timestamp")
+	canonical, err := g.CanonicaliseForSigning()
 	if err != nil {
-		return nil, fmt.Errorf("canonicalise: %w", err)
+		return nil, fmt.Errorf("canonicalise for signing: %w", err)
 	}
 
 	sig, err := signing.Sign(canonical, privKey)

@@ -17,78 +17,68 @@ const (
 
 // GPR is a GAMI Proof Record — the self-contained unit of evidence. §3.1
 type GPR struct {
-	Context          string      `json:"@context"`
-	Type             string      `json:"type"`
-	Schema           string      `json:"schema"`
-	ID               string      `json:"id"`
-	Subject          Subject     `json:"subject"`
-	Institution      Institution `json:"institution"`
-	Metadata         Metadata    `json:"metadata"`
-	Parent           *string     `json:"parent"`
-	Canonicalization string      `json:"canonicalization"`
-	Signature        string      `json:"signature,omitempty"`
-	Timestamp        *Timestamp  `json:"timestamp,omitempty"`
+	Context string  `json:"@context"`
+	Type    string  `json:"type"`
+	Schema  string  `json:"schema"`
+	ID      string  `json:"id"`
+	Subject Subject `json:"subject"`
+	Proof   Proof   `json:"proof"`
+	Parent  *string `json:"parent"`
 }
 
-// Subject identifies the file being anchored.
+// Subject holds the file hash and metadata for the anchored content.
 type Subject struct {
-	Hash     string `json:"hash"`
-	Filename string `json:"filename,omitempty"`
+	Filename string            `json:"filename,omitempty"`
+	FileHash string            `json:"file_hash"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// Institution identifies the signing institution and its key.
-type Institution struct {
-	Name         string `json:"name"`
-	KeyID        string `json:"key_id"`
-	PublicKeyHex string `json:"public_key_hex,omitempty"` // embedded for offline/resilience verification
+// Proof holds all cryptographic evidence: signer identity, signature, and optional timestamp.
+type Proof struct {
+	Created      string     `json:"created"`
+	KeyID        string     `json:"key_id"`
+	PublicKeyHex string     `json:"public_key_hex,omitempty"` // embedded for offline/resilience verification
+	Signature    string     `json:"signature,omitempty"`
+	Timestamp    *Timestamp `json:"timestamp,omitempty"`
 }
 
-// Metadata holds public and optionally a private metadata hash.
-type Metadata struct {
-	Public      PublicMetadata `json:"public"`
-	PrivateHash string         `json:"private_hash,omitempty"`
-}
-
-// PublicMetadata contains descriptive fields recorded at anchoring time.
-type PublicMetadata struct {
-	Title              string            `json:"title,omitempty"`
-	Collection         string            `json:"collection,omitempty"`
-	ClassificationCode string            `json:"classificationCode,omitempty"`
-	DateAnchored       string            `json:"dateAnchored,omitempty"`
-	Extra              map[string]string `json:"extra,omitempty"`
-}
-
-// Timestamp holds the OTS proof and anchoring method.
+// Timestamp holds the OpenTimestamps proof for the signed document. §5.3
 type Timestamp struct {
-	Method string `json:"method"`
-	Proof  string `json:"proof,omitempty"`
+	Type         string `json:"type"`
+	DocumentHash string `json:"document_hash"` // SHA-256 of JCS(document including proof.signature)
+	Calendar     string `json:"calendar,omitempty"`
+	SubmittedAt  string `json:"submitted_at,omitempty"`
+	OTSData      string `json:"ots_data,omitempty"` // base64-encoded raw .ots binary
+	Upgraded     bool   `json:"upgraded"`           // true once Bitcoin confirmation received
 }
 
 // BuildRequest holds all inputs needed to construct a new GPR.
 type BuildRequest struct {
-	FileHash        string
-	Filename        string
-	InstitutionName string
-	KeyID           string
-	PublicKeyHex    string // optional: embed public key for offline verification
-	Metadata        PublicMetadata
-	PrivateHash     string
-	ParentID        *string
+	FileHash     string
+	Filename     string
+	KeyID        string
+	PublicKeyHex string            // optional: embed public key for offline verification
+	Metadata     map[string]string // open key/value metadata
+	ParentID     *string
 }
 
-// Build constructs a new unsigned GPR without a timestamp proof. §5.2
+// Build constructs a new unsigned GPR. §5.2
+//
+// The GPR has no signature and no timestamp; run 'gami sign' then 'gami stamp'.
+// Signing target: JCS(document with proof.signature and proof.timestamp absent).
+// Timestamp target: JCS(document with proof.signature present, proof.timestamp absent).
 func Build(req BuildRequest) (*GPR, error) {
 	if req.FileHash == "" {
 		return nil, fmt.Errorf("file hash is required")
-	}
-	if req.InstitutionName == "" {
-		return nil, fmt.Errorf("institution name is required")
 	}
 	if req.KeyID == "" {
 		return nil, fmt.Errorf("key ID is required")
 	}
 
-	req.Metadata.DateAnchored = time.Now().UTC().Format(time.RFC3339)
+	meta := make(map[string]string, len(req.Metadata))
+	for k, v := range req.Metadata {
+		meta[k] = v
+	}
 
 	return &GPR{
 		Context: ContextURL,
@@ -96,34 +86,30 @@ func Build(req BuildRequest) (*GPR, error) {
 		Schema:  SchemaV1,
 		ID:      "urn:uuid:" + uuid.New().String(),
 		Subject: Subject{
-			Hash:     req.FileHash,
 			Filename: req.Filename,
+			FileHash: req.FileHash,
+			Metadata: meta,
 		},
-		Institution: Institution{
-			Name:         req.InstitutionName,
+		Proof: Proof{
+			Created:      time.Now().UTC().Format(time.RFC3339),
 			KeyID:        req.KeyID,
 			PublicKeyHex: req.PublicKeyHex,
 		},
-		Metadata: Metadata{
-			Public:      req.Metadata,
-			PrivateHash: req.PrivateHash,
-		},
-		Parent:           req.ParentID,
-		Canonicalization: "JCS",
+		Parent: req.ParentID,
 	}, nil
 }
 
-// SetSignature returns a copy of the GPR with the signature field set. §5.2
+// SetSignature returns a copy of the GPR with proof.signature set. §5.2
 func (g *GPR) SetSignature(sig string) *GPR {
 	c := *g
-	c.Signature = sig
+	c.Proof.Signature = sig
 	return &c
 }
 
-// SetTimestampProof returns a copy of the GPR with the OTS proof inserted. §5.3
-func (g *GPR) SetTimestampProof(proof string) *GPR {
+// SetTimestamp returns a copy of the GPR with proof.timestamp set. §5.3
+func (g *GPR) SetTimestamp(ts *Timestamp) *GPR {
 	c := *g
-	c.Timestamp = &Timestamp{Method: "opentimestamps", Proof: proof}
+	c.Proof.Timestamp = ts
 	return &c
 }
 
@@ -139,17 +125,14 @@ func Validate(g *GPR) error {
 	if g.ID == "" {
 		return fmt.Errorf("missing id")
 	}
-	if g.Subject.Hash == "" {
-		return fmt.Errorf("missing subject.hash")
+	if g.Subject.FileHash == "" {
+		return fmt.Errorf("missing subject.file_hash")
 	}
-	if g.Institution.Name == "" {
-		return fmt.Errorf("missing institution.name")
+	if g.Proof.KeyID == "" {
+		return fmt.Errorf("missing proof.key_id")
 	}
-	if g.Institution.KeyID == "" {
-		return fmt.Errorf("missing institution.key_id")
-	}
-	if g.Signature == "" {
-		return fmt.Errorf("missing signature")
+	if g.Proof.Signature == "" {
+		return fmt.Errorf("missing proof.signature")
 	}
 	return nil
 }

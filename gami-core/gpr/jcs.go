@@ -8,24 +8,36 @@ import (
 	"sort"
 )
 
-// Canonicalise produces the JCS (RFC 8785) canonical byte representation
-// of the GPR with the specified top-level fields omitted.
-//
-// Before signing: omit "signature" and "timestamp".
-// Before OTS verification: omit "timestamp".
-func (g *GPR) Canonicalise(omit ...string) ([]byte, error) {
-	data, err := json.Marshal(g)
+// CanonicaliseForSigning returns JCS bytes for Ed25519 signing.
+// Omits proof.signature and proof.timestamp — neither exists at signing time.
+func (g *GPR) CanonicaliseForSigning() ([]byte, error) {
+	return g.canonicaliseOmitProofFields("signature", "timestamp")
+}
+
+// CanonicaliseForTimestamp returns JCS bytes for the OTS document_hash computation.
+// Includes proof.signature but omits proof.timestamp (not yet known).
+func (g *GPR) CanonicaliseForTimestamp() ([]byte, error) {
+	return g.canonicaliseOmitProofFields("timestamp")
+}
+
+// canonicaliseOmitProofFields marshals the GPR to a map, deletes named fields
+// from the proof object, then returns the JCS canonical bytes.
+func (g *GPR) canonicaliseOmitProofFields(fields ...string) ([]byte, error) {
+	raw, err := json.Marshal(g)
 	if err != nil {
 		return nil, fmt.Errorf("marshal GPR: %w", err)
 	}
 
 	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
+	if err := json.Unmarshal(raw, &m); err != nil {
 		return nil, fmt.Errorf("unmarshal to map: %w", err)
 	}
 
-	for _, field := range omit {
-		delete(m, field)
+	if proof, ok := m["proof"].(map[string]any); ok {
+		for _, f := range fields {
+			delete(proof, f)
+		}
+		m["proof"] = proof
 	}
 
 	return canonicaliseValue(m)

@@ -2,14 +2,14 @@
 package ots
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/opentimestamps/go-opentimestamps/calendar"
+	"github.com/opentimestamps/go-opentimestamps/core"
 )
 
 // DefaultCalendars are the public OTS calendar servers operated by the OTS project.
@@ -17,6 +17,13 @@ var DefaultCalendars = []string{
 	"https://alice.btc.calendar.opentimestamps.org",
 	"https://bob.btc.calendar.opentimestamps.org",
 	"https://finney.calendar.eternitywall.com",
+}
+
+// SubmitResult holds the raw response from a successful calendar submission.
+type SubmitResult struct {
+	Calendar    string    // URL of the calendar that responded
+	SubmittedAt time.Time // time of submission
+	ProofBytes  []byte    // raw binary .ots file content (incomplete, pending Bitcoin confirmation)
 }
 
 // Client submits hashes to OTS calendar servers and retrieves proofs.
@@ -34,95 +41,113 @@ func New() *Client {
 }
 
 // Submit sends a SHA-256 hash to the configured OTS calendar servers.
-// Returns a base64-encoded incomplete OTS proof blob on the first success. §5.3
+// Returns a SubmitResult with the raw .ots binary on the first successful calendar. §5.3
 //
 // The hash must be a hex string (with or without "sha256:" prefix).
-func (c *Client) Submit(hashHex string) (string, error) {
+func (c *Client) Submit(hashHex string) (*SubmitResult, error) {
 	hashHex = strings.TrimPrefix(hashHex, "sha256:")
 	hashBytes, err := hex.DecodeString(hashHex)
 	if err != nil {
-		return "", fmt.Errorf("decode hash: %w", err)
+		return nil, fmt.Errorf("decode hash: %w", err)
 	}
 	if len(hashBytes) != 32 {
-		return "", fmt.Errorf("expected 32-byte SHA-256 hash, got %d bytes", len(hashBytes))
+		return nil, fmt.Errorf("expected 32-byte SHA-256 hash, got %d bytes", len(hashBytes))
 	}
 
 	var lastErr error
-	for _, calendar := range c.Calendars {
-		proof, err := c.submitToCalendar(calendar, hashBytes)
+	for _, calURL := range c.Calendars {
+		rc := calendar.NewRemoteCalendar(calURL)
+		rc.Client = c.HTTPClient
+		ts, err := rc.Submit(hashBytes, 0)
 		if err != nil {
 			lastErr = err
 			continue
 		}
-		return base64.StdEncoding.EncodeToString(proof), nil
+		proofBytes, err := serializeTimestamp(ts)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		return &SubmitResult{
+			Calendar:    calURL,
+			SubmittedAt: time.Now().UTC(),
+			ProofBytes:  proofBytes,
+		}, nil
 	}
-	return "", fmt.Errorf("all %d calendars failed; last error: %w", len(c.Calendars), lastErr)
+	return nil, fmt.Errorf("all %d calendars failed; last error: %w", len(c.Calendars), lastErr)
 }
 
-func (c *Client) submitToCalendar(calendar string, hashBytes []byte) ([]byte, error) {
-	url := strings.TrimRight(calendar, "/") + "/digest"
-	resp, err := c.HTTPClient.Post(url, "application/octet-stream", bytes.NewReader(hashBytes))
-	if err != nil {
-		return nil, fmt.Errorf("POST %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("calendar %s returned %d: %s", calendar, resp.StatusCode, string(body))
-	}
-	return io.ReadAll(resp.Body)
-}
-
-// Upgrade attempts to complete an incomplete OTS proof by querying calendar servers
-// for a Bitcoin block confirmation. Returns (proof, confirmed, error). §5.3
+// UpgradeByHash queries calendar servers for a completed proof using the stored partial OTS data.
+// hashHex is the document hash submitted during stamp (with or without "sha256:" prefix).
+// otsDataBytes is the raw bytes of the partial OTS proof returned during Submit.
+// Returns (proofBytes, calendar, confirmed, error). §5.3
 //
-// If not yet confirmed, returns (originalProof, false, nil) — safe to retry later.
-func (c *Client) Upgrade(incompleteProofB64 string) (string, bool, error) {
-	proofBytes, err := base64.StdEncoding.DecodeString(incompleteProofB64)
+// If not yet confirmed by any calendar, returns (nil, "", false, nil) — safe to retry later.
+func (c *Client) UpgradeByHash(hashHex string, otsDataBytes []byte) ([]byte, string, bool, error) {
+	hashHex = strings.TrimPrefix(hashHex, "sha256:")
+	hashBytes, err := hex.DecodeString(hashHex)
 	if err != nil {
-		return "", false, fmt.Errorf("decode proof: %w", err)
+		return nil, "", false, fmt.Errorf("invalid hash hex: %w", err)
 	}
 
-	for _, calendar := range c.Calendars {
-		upgraded, confirmed, err := c.upgradeFromCalendar(calendar, proofBytes)
+	// Parse the stored partial timestamp. The calendar stores the proof under
+	// the aggregation root (commitment), not the document hash, so we must
+	// walk the tree to find the pending commitment and query with that.
+	ctx := core.NewBytesDeserializationContext(otsDataBytes)
+	ts, err := core.DeserializeTimestamp(ctx, hashBytes, 256)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("parse ots_data: %w", err)
+	}
+
+	for _, calURL := range c.Calendars {
+		rc := calendar.NewRemoteCalendar(calURL)
+		rc.Client = c.HTTPClient
+		changed, err := upgradeTimestamp(ts, rc)
+		if err != nil || !changed {
+			continue
+		}
+		proofBytes, err := serializeTimestamp(ts)
 		if err != nil {
 			continue
 		}
-		if confirmed {
-			return base64.StdEncoding.EncodeToString(upgraded), true, nil
-		}
+		return proofBytes, calURL, true, nil
 	}
-	// Not yet confirmed in any calendar — safe to return original and retry later
-	return incompleteProofB64, false, nil
+
+	return nil, "", false, nil // no calendar has confirmed yet
 }
 
-func (c *Client) upgradeFromCalendar(calendar string, proof []byte) ([]byte, bool, error) {
-	// The commitment is the first 32 bytes of the proof body (after the OTS magic header).
-	// A full implementation parses the OTS binary format; this uses the first 32 bytes
-	// as an approximation for the calendar query.
-	if len(proof) < 32 {
-		return nil, false, fmt.Errorf("proof too short")
+// upgradeTimestamp walks ts, finds all PendingAttestation nodes, queries the
+// calendar for each, and merges the results in-place.
+// Returns true if any new attestation was obtained.
+func upgradeTimestamp(ts *core.Timestamp, rc *calendar.RemoteCalendar) (bool, error) {
+	changed := false
+	var walk func(*core.Timestamp)
+	walk = func(t *core.Timestamp) {
+		for _, att := range t.Attestations {
+			if _, ok := att.(*core.PendingAttestation); ok {
+				upgraded, err := rc.GetTimestamp(t.Msg, 0)
+				if err == nil {
+					if mergeErr := t.Merge(upgraded); mergeErr == nil {
+						changed = true
+					}
+				}
+				break
+			}
+		}
+		for _, entry := range t.Ops.Entries() {
+			walk(entry.Stamp)
+		}
 	}
-	commitment := hex.EncodeToString(proof[:32])
-	url := strings.TrimRight(calendar, "/") + "/timestamp/" + commitment
+	walk(ts)
+	return changed, nil
+}
 
-	resp, err := c.HTTPClient.Get(url)
-	if err != nil {
-		return nil, false, fmt.Errorf("GET %s: %w", url, err)
+// serializeTimestamp converts a *core.Timestamp to the raw bytes returned by
+// the calendar API, for storage in GPR.Proof.Timestamp.OTSData.
+func serializeTimestamp(ts *core.Timestamp) ([]byte, error) {
+	ctx := core.NewBytesSerializationContext()
+	if err := ts.Serialize(ctx); err != nil {
+		return nil, fmt.Errorf("serialize timestamp: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, false, nil // pending confirmation
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, false, fmt.Errorf("calendar returned %d", resp.StatusCode)
-	}
-
-	upgraded, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, false, err
-	}
-	return upgraded, true, nil
+	return ctx.GetBytes(), nil
 }
