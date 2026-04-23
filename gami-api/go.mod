@@ -15,4 +15,4 @@ require (
 // Remove this replace directive when publishing gami-core to a registry.
 replace github.com/progressiv0/gami/gami-core => ../gami-core
 
-// replace github.com/progressiv0/go-opentimestamps => ../../go-opentimestamps
+replace github.com/progressiv0/go-opentimestamps => ../go-opentimestamps

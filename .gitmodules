@@ -1,0 +1,3 @@
+[submodule "go-opentimestamps"]
+	path = go-opentimestamps
+	url = git@github.com:progressiv0/go-opentimestamps.git

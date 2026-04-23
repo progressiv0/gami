@@ -26,12 +26,15 @@ No other runtime dependencies. All cryptographic primitives use the Go standard 
 ### From source
 
 ```bash
-git clone git@github.com:progressiv0/gami.git
+git clone --recurse-submodules git@github.com:progressiv0/gami.git
 cd gami
 go mod download
 make build
 # binary is at bin/gami
 ```
+
+> The `--recurse-submodules` flag fetches the bundled `go-opentimestamps` dependency.
+> If you already cloned without it, run: `git submodule update --init`
 
 ### Install to $GOPATH/bin
 
