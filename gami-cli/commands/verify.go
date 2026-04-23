@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"authenticmemory.org/gami-core/gpr"
-	"authenticmemory.org/gami-core/hash"
-	"authenticmemory.org/gami-core/verify"
+	"github.com/progressiv0/gami/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/hash"
+	"github.com/progressiv0/gami/gami-core/verify"
 )
 
 var verifyCmd = &cobra.Command{

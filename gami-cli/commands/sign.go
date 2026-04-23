@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"authenticmemory.org/gami-core/gpr"
-	"authenticmemory.org/gami-core/service"
+	"github.com/progressiv0/gami/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/service"
 )
 
 var signCmd = &cobra.Command{

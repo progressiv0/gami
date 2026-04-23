@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"authenticmemory.org/gami-core/gpr"
-	"authenticmemory.org/gami-core/hash"
+	"github.com/progressiv0/gami/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/hash"
 )
 
 var exportCmd = &cobra.Command{

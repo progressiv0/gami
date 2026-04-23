@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"authenticmemory.org/gami-core/signing"
+	"github.com/progressiv0/gami/gami-core/signing"
 )
 
 var keygenCmd = &cobra.Command{

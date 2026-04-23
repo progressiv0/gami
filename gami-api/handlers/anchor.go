@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"authenticmemory.org/gami-api/config"
-	"authenticmemory.org/gami-core/hash"
-	"authenticmemory.org/gami-core/service"
+	"github.com/progressiv0/gami/gami-api/config"
+	"github.com/progressiv0/gami/gami-core/hash"
+	"github.com/progressiv0/gami/gami-core/service"
 )
 
 // AnchorHandler handles POST /v1/anchor.

@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"authenticmemory.org/gami-core/gpr"
-	"authenticmemory.org/gami-core/verify"
+	"github.com/progressiv0/gami/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/verify"
 )
 
 // VerifyHandler handles POST /v1/verify.

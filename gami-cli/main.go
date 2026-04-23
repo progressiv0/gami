@@ -1,6 +1,6 @@
 package main
 
-import "authenticmemory.org/gami-cli/commands"
+import "github.com/progressiv0/gami/gami-cli/commands"
 
 func main() {
 	commands.Execute()

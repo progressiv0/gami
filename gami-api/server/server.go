@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"authenticmemory.org/gami-api/config"
-	"authenticmemory.org/gami-api/handlers"
+	"github.com/progressiv0/gami/gami-api/config"
+	"github.com/progressiv0/gami/gami-api/handlers"
 )
 
 // New returns an http.Handler with all routes registered.

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"authenticmemory.org/gami-api/config"
-	"authenticmemory.org/gami-api/server"
+	"github.com/progressiv0/gami/gami-api/config"
+	"github.com/progressiv0/gami/gami-api/server"
 )
 
 func main() {

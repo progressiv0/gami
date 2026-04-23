@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"authenticmemory.org/gami-api/config"
-	"authenticmemory.org/gami-core/gpr"
-	"authenticmemory.org/gami-core/service"
+	"github.com/progressiv0/gami/gami-api/config"
+	"github.com/progressiv0/gami/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/service"
 )
 
 // SignHandler handles POST /v1/sign.

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"authenticmemory.org/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/gpr"
 )
 
 var extractSigningCmd = &cobra.Command{

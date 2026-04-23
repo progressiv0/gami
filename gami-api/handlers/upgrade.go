@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"authenticmemory.org/gami-core/gpr"
-	"authenticmemory.org/gami-core/service"
+	"github.com/progressiv0/gami/gami-core/gpr"
+	"github.com/progressiv0/gami/gami-core/service"
 )
 
 // UpgradeHandler handles POST /v1/upgrade.
