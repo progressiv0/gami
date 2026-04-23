@@ -18,12 +18,15 @@ architecture and use-case documentation.
 ```
 gami/
 ├── gami-core/          Shared library — hash, signing, OTS, verification
-├── gami-cli/           Command-line interface → README
-├── gami-api/           HTTP REST API server   → README
+├── gami-cli/           Command-line interface  → README
+├── gami-api/           HTTP REST API server    → README
 ├── go-opentimestamps/  Submodule — local OpenTimestamps dependency
 ├── go.sh               Run go commands across all modules
 └── Makefile
 ```
+
+- [gami-cli/README.md](gami-cli/README.md) — CLI installation, all commands, and examples
+- [gami-api/README.md](gami-api/README.md) — API server configuration and endpoint reference
 
 ---
 
