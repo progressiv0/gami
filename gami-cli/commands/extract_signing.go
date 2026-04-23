@@ -17,9 +17,9 @@ var extractSigningCmd = &cobra.Command{
 	Short: "Extract signing payload and key info for Ed25519 signature verification",
 	Long: `Writes the exact bytes that were signed, alongside the public key and signature.
 
-  <name>.signing      — JCS document without proof.signature and proof.timestamp
+  <name>.signing.json — JCS document without proof.signature and proof.timestamp
 
-The signature scheme is: Ed25519Sign(private_key, SHA-256(<name>.signing))
+The signature scheme is: Ed25519Sign(private_key, SHA-256(<name>.signing.json))
 To verify manually:
 
   # Python (cryptography library):
@@ -27,7 +27,7 @@ To verify manually:
   from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
   import hashlib, binascii, sys
   pub = Ed25519PublicKey.from_public_bytes(binascii.unhexlify('<public_key_hex>'))
-  data = open('<name>.signing', 'rb').read()
+  data = open('<name>.signing.json', 'rb').read()
   sig  = binascii.unhexlify('<signature_hex>')
   pub.verify(sig, hashlib.sha256(data).digest())
   print('Signature VALID')
@@ -72,7 +72,7 @@ func runExtractSigning(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("canonicalise for signing: %w", err)
 	}
-	signingPath := prefix + ".signing"
+	signingPath := prefix + ".signing.json"
 	if err := os.WriteFile(signingPath, canonical, 0644); err != nil {
 		return fmt.Errorf("write signing payload: %w", err)
 	}

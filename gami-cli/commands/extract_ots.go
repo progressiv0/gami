@@ -41,13 +41,13 @@ var extractOTSCmd = &cobra.Command{
 	Short: "Extract OTS proof and canonical document for opentimestamps.org",
 	Long: `Writes two files needed to verify the Bitcoin timestamp externally:
 
-  <name>.ots          — OTS DetachedTimestampFile (compatible with ots CLI and opentimestamps.org)
-  <name>.canonical    — JCS document that was hashed (signed, timestamp block absent)
+  <name>.ots            — OTS DetachedTimestampFile (compatible with ots CLI and opentimestamps.org)
+  <name>.canonical.json — JCS document that was hashed (signed, timestamp block absent)
 
-The .canonical file contains the exact bytes whose SHA-256 equals
+The .canonical.json file contains the exact bytes whose SHA-256 equals
 proof.timestamp.document_hash. Verify with:
 
-  ots verify <name>.canonical <name>.ots`,
+  ots verify <name>.canonical.json <name>.ots`,
 	RunE: runExtractOTS,
 }
 
@@ -104,7 +104,7 @@ func runExtractOTS(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("canonicalise document: %w", err)
 	}
-	canonicalPath := prefix + ".canonical"
+	canonicalPath := prefix + ".canonical.json"
 	if err := os.WriteFile(canonicalPath, canonical, 0644); err != nil {
 		return fmt.Errorf("write canonical document: %w", err)
 	}
