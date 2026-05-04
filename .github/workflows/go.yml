@@ -10,8 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
@@ -29,6 +28,45 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
       with:
-        name: gami
+        name: gami-linux
         path: bin/
-        
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: 'true'
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.26'
+
+    - name: Build
+      run: make build
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: gami-windows
+        path: bin/      
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: 'true'
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.26'
+
+    - name: Build
+      run: make build
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: gami-macos
+        path: bin/
